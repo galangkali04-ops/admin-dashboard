@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Santai Recovery Spa · Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-brand-text">
+      <span class="brand-name">SANTAI</span>
+      <span class="brand-sub">Recovery Spa · Admin Dashboard</span>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-indicator">
+      <div class="live-dot"></div>
+      <span class="live-label">LIVE</span>
+    </div>
+    <div class="topbar-date" id="currentDate">—</div>
+    <button class="btn-refresh" onclick="loadAll()">
+      <span class="spin-icon">↻</span> Refresh
+    </button>
+  </div>
+</div>
+
+<div class="dashboard-container">
+  
+  <div class="presets-row">
+    <button class="preset-btn active" id="btn-today" onclick="setPreset('today', this)">Today</button>
+    <button class="preset-btn" onclick="setPreset('yesterday', this)">Yesterday</button>
+    <button class="preset-btn" onclick="setPreset('7d', this)">Last 7 Days</button>
+    <button class="preset-btn" onclick="setPreset('30d', this)">Last 30 Days</button>
+    <button class="preset-btn" onclick="setPreset('thisMonth', this)">This Month</button>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card gold">
+      <div class="kpi-label">Total Revenue</div>
+      <div id="kpi-revenue" class="kpi-value">Rp 0</div>
+      <div id="kpi-revenue-sub" class="kpi-sub">Loading receipts...</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">New Members</div>
+      <div id="kpi-new-members" class="kpi-value">0</div>
+      <div class="kpi-sub">Registered in period</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Mendekati Expired (7d)</div>
+      <div id="kpi-expiring-members" class="kpi-value">0</div>
+      <div class="kpi-sub">Butuh Tindakan Segera</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">Total Pengunjung</div>
+      <div id="kpi-visitors" class="kpi-value">0</div>
+      <div class="kpi-sub" id="kpi-visitors-sub">Transaksi tercatat</div>
+    </div>
+  </div>
+
+  <div class="section-label">Visual Analytics</div>
+  <div class="row-1" style="margin-bottom: 20px;">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">📈 Daily Revenue Trend</div>
+      </div>
+      <div class="panel-body dynamic-chart-box">
+        <canvas id="revenueChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Detail Pengunjung</div>
+  <div class="panel" style="margin-bottom: 20px;">
+    <div class="panel-header">
+      <div class="panel-title">
+        👥 Jumlah Pengunjung
+        <span class="badge badge-blue" id="visitor-count-badge">0 pengunjung</span>
+      </div>
+      <div class="search-box">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="visitor-search" placeholder="Cari nama, email, atau session…" oninput="filterVisitorTable()">
+      </div>
+    </div>
+    <div class="panel-body" style="padding:0;">
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nama Pengunjung</th>
+              <th>Email</th>
+              <th>Session / Layanan</th>
+              <th>Waktu</th>
+            </tr>
+          </thead>
+          <tbody id="table-visitors-body">
+            <tr class="loading-row"><td colspan="4">Loading data…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Members Management</div>
+  <div class="row-2">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">⚠️ Member Mau Expired</div>
+      </div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nama</th>
+              <th>Plan</th>
+              <th style="text-align: center;">Reminder</th>
+            </tr>
+          </thead>
+          <tbody id="table-expiring-body">
+            <tr class="loading-row"><td colspan="3">Loading data…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">🆕 New Registrations</div>
+      </div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead>
+            <tr><th>Name</th><th>Level</th><th>Joined Date</th></tr>
+          </thead>
+          <tbody id="table-new-members-body">
+            <tr class="loading-row"><td colspan="3">Loading data…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Revenue Breakdown & Operations</div>
+  <div class="row-2" style="margin-bottom: 48px;">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">💰 Revenue Summary <span class="badge badge-gold" id="revenue-period-label">—</span></div>
+      </div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead>
+            <tr><th>Category</th><th>Count</th><th>Revenue</th></tr>
+          </thead>
+          <tbody id="revenue-table">
+            <tr class="loading-row"><td colspan="3">Loading data…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">📅 Daily Breakdown Bars</div>
+      </div>
+      <div class="panel-body" id="daily-breakdown-container" style="padding: 0;">
+        <div style="padding:20px; color:var(--muted)">Loading daily distribution...</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="js/dashboard-index.js"></script>
+</body>
+</html>
