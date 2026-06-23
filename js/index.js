@@ -1,37 +1,52 @@
 // ╔══════════════════════════════════════════════════════════════╗
 // ║  SANTAI RECOVERY SPA — Admin Dashboard                      ║
-// ║  Connects to Supabase (polled from Loyverse API)             ║
-// ║                                                              ║
-// ║  Tables expected:                                            ║
-// ║    members      → name, membership_level, membership_status  ║
-// ║                   member_since, renewal_due, pause_date      ║
-// ║    transactions → customer_type ('member'|'walk_in')         ║
-// ║                   product_name, total_money, created_at      ║
+// ║  Connects to Local Backend API (which proxies Loyverse)     ║
 // ╚══════════════════════════════════════════════════════════════╝
 
 // ── CONFIG ─────────────────────────────────────────────────────
-const SUPABASE_URL = 'https://pzotsmqimlecrgkaajdb.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6b3RzbXFpbWxlY3Jna2FhamRiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTg3NjQ4MCwiZXhwIjoyMDk1NDUyNDgwfQ.aB-TlrPfAROmTzXqLtlaf73Asq04Q7Y7kc36zHXwDpc';
+// Mengarahkan frontend langsung ke server backend lokal Anda (Port 3000)
+const BASE_URL = 'http://localhost:3000';
 
 // !! Adjust these to match EXACT product names in Loyverse !!
 const PRODUCT_SINGLE = 'Single Session';
 const PRODUCT_DAYPASS = 'Day Pass';
 
-// ── SUPABASE FETCH ──────────────────────────────────────────────
+// ── BACKEND API FETCH BRIDGE ───────────────────────────────────
 async function sb(path) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    headers: {
-      'apikey':        SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type':  'application/json',
-      'Prefer':        'count=exact'
-    }
-  });
+  let targetPath = path;
+  
+  // Deteksi rute URL dari frontend dan arahkan ke endpoint Express backend yang sesuai
+  if (path.startsWith('members')) {
+    targetPath = 'api/members';
+  } else if (path.startsWith('transactions') || path.startsWith('receipts')) {
+    targetPath = 'api/receipts';
+  }
+
+  // Menambahkan parameter filter tanggal jika ada dari komponen UI rangeTs()
+  let url = `${BASE_URL}/${targetPath}`;
+  if (targetPath === 'api/receipts' && (filterFrom || filterTo)) {
+    url += `?from=${filterFrom}&to=${filterTo}`;
+  }
+
+  const res = await fetch(url);
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Supabase ${res.status}: ${err}`);
+    throw new Error(`Backend Error ${res.status}: ${err}`);
   }
-  return res.json();
+  
+  const result = await res.json();
+  
+  // Jika yang diminta adalah data transaksi/receipts, petakan strukturnya agar 
+  // cocok dengan fungsi filter bawaan kode dashboard Anda (.product_name)
+  if (targetPath === 'api/receipts' && result.receipts) {
+    return result.receipts.map(r => ({
+      ...r,
+      product_name: r.session, // Menggunakan gabungan nama layanan Loyverse sebagai nama produk
+      customer_name: r.customer_name
+    }));
+  }
+  
+  return result;
 }
 
 // ── DATE STATE ──────────────────────────────────────────────────
@@ -133,26 +148,19 @@ function statusPill(s) {
 
 function showToast(msg, dur = 2500) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
   t.style.display = 'block';
+  t.textContent = msg;
   setTimeout(() => t.style.display = 'none', dur);
 }
 
 // ── KPI & WALK-IN TABLES ────────────────────────────────────────
 async function loadWalkinTables() {
-  const { from, to } = rangeTs();
+  // Ambil data transaksi olahan dari backend
+  const data = await sb('transactions');
 
-  // Fetch all walk-in transactions in period
-  const data = await sb(
-    `transactions?customer_type=eq.walk_in` +
-    `&created_at=gte.${from}&created_at=lte.${to}` +
-    `&select=product_name,total_money,created_at,customer_name` +
-    `&order=created_at.desc`
-  );
-
-  // Split by product_name
-  const singles  = data.filter(r => r.product_name === PRODUCT_SINGLE);
-  const daypasses = data.filter(r => r.product_name === PRODUCT_DAYPASS);
+  // Split by product_name (pencocokan nama produk Loyverse)
+  const singles   = data.filter(r => r.product_name.includes(PRODUCT_SINGLE));
+  const daypasses = data.filter(r => r.product_name.includes(PRODUCT_DAYPASS));
 
   // KPI numbers
   document.getElementById('kpi-single').textContent  = singles.length;
@@ -189,22 +197,22 @@ async function loadWalkinTables() {
 
 // ── NEW MEMBERS (period-aware) ──────────────────────────────────
 async function loadNewMembers() {
-  const { from, to } = rangeTs();
-  // New members = their first paid transaction in period (customer_type = 'member')
-  // AND member_since falls within range (most reliable)
-  const data = await sb(
-    `members?member_since=gte.${filterFrom}&member_since=lte.${filterTo}` +
-    `&select=name,membership_level,member_since,renewal_due,membership_status` +
-    `&order=member_since.desc`
-  );
+  const data = await sb('members');
+  
+  // Filter member yang bergabung di range tanggal pilihan secara lokal
+  const filteredMembers = data.filter(m => {
+    if (!m.member_since) return false;
+    const d = m.member_since.split('T')[0];
+    return d >= filterFrom && d <= filterTo;
+  });
 
-  document.getElementById('kpi-new').textContent    = data.length;
+  document.getElementById('kpi-new').textContent    = filteredMembers.length;
   document.getElementById('kpi-new-sub').textContent = `Joined ${filterFrom === filterTo ? 'today' : 'this period'}`;
-  document.getElementById('new-member-count').textContent = data.length;
+  document.getElementById('new-member-count').textContent = filteredMembers.length;
 
   const tb = document.getElementById('new-member-table');
-  tb.innerHTML = data.length
-    ? data.map(m => `<tr>
+  tb.innerHTML = filteredMembers.length
+    ? filteredMembers.map(m => `<tr>
         <td style="font-weight:500">${m.name}</td>
         <td><span class="badge badge-gold">${m.membership_level || '—'}</span></td>
         <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${fmtDate(m.member_since)}</td>
@@ -215,33 +223,34 @@ async function loadNewMembers() {
 
 // ── ACTIVE MEMBERS KPI ──────────────────────────────────────────
 async function loadKpiActive() {
-  const data = await sb(`members?membership_status=eq.Active&select=id`);
-  document.getElementById('kpi-active').textContent = data.length;
+  const data = await sb('members');
+  const activeCount = data.filter(m => m.membership_status === 'Active').length;
+  document.getElementById('kpi-active').textContent = activeCount;
 }
 
 // ── EXPIRING IN 7 DAYS (always live, ignores date filter) ───────
 async function loadExpiring() {
+  const data = await sb('members');
   const today = todayStr();
   const in7   = new Date(); in7.setDate(in7.getDate() + 7);
   const in7Str = in7.toISOString().split('T')[0];
 
-  const data = await sb(
-    `members?renewal_due=gte.${today}&renewal_due=lte.${in7Str}` +
-    `&membership_status=eq.Active` +
-    `&select=name,membership_level,renewal_due,membership_status` +
-    `&order=renewal_due.asc`
-  );
+  const expiringMembers = data.filter(m => {
+    if (!m.renewal_due || m.membership_status !== 'Active') return false;
+    const d = m.renewal_due.split('T')[0];
+    return d >= today && d <= in7Str;
+  });
 
-  document.getElementById('kpi-expiring').textContent   = data.length;
-  document.getElementById('expiring-count').textContent = data.length;
+  document.getElementById('kpi-expiring').textContent   = expiringMembers.length;
+  document.getElementById('expiring-count').textContent = expiringMembers.length;
 
   const tb = document.getElementById('expiring-table');
-  if (!data.length) {
+  if (!expiringMembers.length) {
     tb.innerHTML = '<tr class="loading-row"><td colspan="4">✓ No members expiring this week</td></tr>';
     return;
   }
 
-  tb.innerHTML = data.map(m => {
+  tb.innerHTML = expiringMembers.map(m => {
     const dl = daysLeft(m.renewal_due);
     const dlClass = dl <= 2 ? 'days-urgent' : dl <= 5 ? 'days-warn' : 'days-ok';
     const dlLabel = dl === 0 ? 'Today!' : dl === 1 ? 'Tomorrow' : `${dl}d`;
@@ -256,9 +265,11 @@ async function loadExpiring() {
 
 // ── MEMBERSHIP BREAKDOWN BARS ───────────────────────────────────
 async function loadBreakdown() {
-  const data = await sb(`members?membership_status=eq.Active&select=membership_level`);
+  const data = await sb('members');
+  const activeMembers = data.filter(m => m.membership_status === 'Active');
+  
   const counts = {};
-  for (const m of data) {
+  for (const m of activeMembers) {
     const lvl = m.membership_level || 'Unknown';
     counts[lvl] = (counts[lvl] || 0) + 1;
   }
@@ -281,7 +292,7 @@ async function loadBreakdown() {
 
 // ── STATUS DONUT ────────────────────────────────────────────────
 async function loadDonut() {
-  const data = await sb(`members?select=membership_status`);
+  const data = await sb('members');
   const counts = {};
   for (const m of data) {
     const s = m.membership_status || 'Inactive';
@@ -326,15 +337,14 @@ async function loadDonut() {
 
 // ── PAUSED MEMBERS ──────────────────────────────────────────────
 async function loadPaused() {
-  const data = await sb(
-    `members?membership_status=eq.Paused` +
-    `&select=name,membership_level,pause_date,renewal_due&order=pause_date.desc`
-  );
-  document.getElementById('paused-count').textContent = data.length;
+  const data = await sb('members');
+  const pausedMembers = data.filter(m => m.membership_status === 'Paused');
+
+  document.getElementById('paused-count').textContent = pausedMembers.length;
 
   const tb = document.getElementById('paused-table');
-  tb.innerHTML = data.length
-    ? data.map(m => `<tr>
+  tb.innerHTML = pausedMembers.length
+    ? pausedMembers.map(m => `<tr>
         <td style="font-weight:500">${m.name}</td>
         <td><span class="badge badge-purple">${m.membership_level || '—'}</span></td>
         <td style="color:var(--muted);font-family:'DM Mono',monospace;font-size:11px">${fmtDate(m.renewal_due)}</td>
@@ -344,16 +354,8 @@ async function loadPaused() {
 
 // ── REVENUE SUMMARY ─────────────────────────────────────────────
 async function loadRevenue() {
-  const { from, to } = rangeTs();
+  const data = await sb('transactions');
 
-  // All transactions in period
-  const data = await sb(
-    `transactions?created_at=gte.${from}&created_at=lte.${to}` +
-    `&select=customer_type,product_name,total_money,created_at` +
-    `&order=created_at.asc`
-  );
-
-  // Aggregate by category
   const cats = {
     'Single Session': { count: 0, rev: 0, color: 'var(--blue)' },
     'Day Pass':       { count: 0, rev: 0, color: 'var(--teal)' },
@@ -362,10 +364,12 @@ async function loadRevenue() {
   };
 
   for (const tx of data) {
-    if (tx.customer_type === 'walk_in') {
-      if (tx.product_name === PRODUCT_SINGLE)  { cats['Single Session'].count++; cats['Single Session'].rev += tx.total_money || 0; }
-      else if (tx.product_name === PRODUCT_DAYPASS) { cats['Day Pass'].count++; cats['Day Pass'].rev += tx.total_money || 0; }
-      else                                     { cats['Other'].count++; cats['Other'].rev += tx.total_money || 0; }
+    // Membaca isi string nama produk/layanan hasil gabungan item Loyverse
+    const name = tx.product_name || '';
+    if (name.includes(PRODUCT_SINGLE)) {
+      cats['Single Session'].count++; cats['Single Session'].rev += tx.total_money || 0;
+    } else if (name.includes(PRODUCT_DAYPASS)) {
+      cats['Day Pass'].count++; cats['Day Pass'].rev += tx.total_money || 0;
     } else if (tx.customer_type === 'member') {
       cats['Member'].count++; cats['Member'].rev += tx.total_money || 0;
     } else {
@@ -394,18 +398,17 @@ async function loadRevenue() {
     </tr>`;
 
   // ── Daily breakdown ──
-  // Group by date
   const byDate = {};
   for (const tx of data) {
+    if (!tx.created_at) continue;
     const d = tx.created_at.split('T')[0];
     if (!byDate[d]) byDate[d] = { total: 0, singles: 0, daypasses: 0, members: 0 };
+    
     byDate[d].total += tx.total_money || 0;
-    if (tx.customer_type === 'walk_in') {
-      if (tx.product_name === PRODUCT_SINGLE) byDate[d].singles++;
-      else if (tx.product_name === PRODUCT_DAYPASS) byDate[d].daypasses++;
-    } else if (tx.customer_type === 'member') {
-      byDate[d].members++;
-    }
+    const name = tx.product_name || '';
+    if (name.includes(PRODUCT_SINGLE)) byDate[d].singles++;
+    else if (name.includes(PRODUCT_DAYPASS)) byDate[d].daypasses++;
+    else if (tx.customer_type === 'member') byDate[d].members++;
   }
 
   const dates = Object.keys(byDate).sort().reverse();
