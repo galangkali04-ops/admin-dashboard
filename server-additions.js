@@ -8,9 +8,15 @@ app.use(cors()); // Mengizinkan frontend index.html mengakses API ini
 app.use(express.json());
 
 // ── KONFIGURASI ENV & CREDENTIALS ──
-const LOYVERSE_TOKEN = process.env.LOYVERSE_TOKEN || "e3cfb1dc01014057be05888e37554f6c";
-const SUPABASE_URL = 'https://pzotsmqimlecrgkaajdb.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6b3RzbXFpbWxlY3Jna2FhamRiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTg3NjQ4MCwiZXhwIjoyMDk1NDUyNDgwfQ.aB-TlrPfAROmTzXqLtlaf73Asq04Q7Y7kc36zHXwDpc';
+const LOYVERSE_TOKEN = process.env.LOYVERSE_TOKEN;
+const SUPABASE_URL   = process.env.SUPABASE_URL || 'https://pzotsmqimlecrgkaajdb.supabase.co';
+const SUPABASE_KEY   = process.env.SUPABASE_KEY;
+
+// Validasi untuk memastikan variabel env sudah terbaca dari file .env
+if (!LOYVERSE_TOKEN || !SUPABASE_KEY) {
+    console.error("❌ ERROR: LOYVERSE_TOKEN atau SUPABASE_KEY belum diatur di file .env!");
+    process.exit(1);
+}
 
 // Inisialisasi Client Supabase
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -92,7 +98,7 @@ async function getCustomerMap() {
 }
 
 /* ═════════════════════════════════════════════════════════════
-   2. API ENDPOINT: AMBIL DATA MEMBER DARI SUPABASE (BARU ✨)
+   2. API ENDPOINT: AMBIL DATA MEMBER DARI SUPABASE
    ═════════════════════════════════════════════════════════════ */
 app.get('/api/members', async (req, res) => {
     try {
