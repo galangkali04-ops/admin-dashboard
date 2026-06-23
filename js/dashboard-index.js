@@ -4,7 +4,7 @@
 // ║  Client Engine Integration System                           ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-const BASE_URL = 'https://santai-seacrh-engine-production.up.railway.app';
+const BASE_URL = 'http://localhost:3000';
 
 // Config nama produk dari POS Loyverse
 const PRODUCT_SINGLE  = 'Single Session';
