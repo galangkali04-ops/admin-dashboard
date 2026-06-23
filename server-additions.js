@@ -70,7 +70,6 @@ async function getItemNames() {
 }
 
 // ── CACHE CUSTOMER LOYVERSE (nama + email) ──
-// Data customer jarang berubah, jadi di-cache sebentar biar /api/receipts tetap cepat
 let _customerCache = { map: {}, fetchedAt: 0 };
 const CUSTOMER_CACHE_TTL = 5 * 60 * 1000; // 5 menit
 
