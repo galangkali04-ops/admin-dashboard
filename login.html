@@ -98,6 +98,24 @@
     }
     .login-btn:hover { opacity: .9; }
     .login-btn:disabled { opacity: .5; cursor: default; }
+    .remember-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: -6px 0 16px;
+    }
+    .remember-row input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--gold, #d4a84b);
+      cursor: pointer;
+    }
+    .remember-row label {
+      font-size: 12.5px;
+      color: var(--muted, #7d8590);
+      cursor: pointer;
+      user-select: none;
+    }
     .login-error {
       color: var(--red, #f85149);
       font-size: 12px;
@@ -129,6 +147,10 @@
             </svg>
           </button>
         </div>
+      </div>
+      <div class="remember-row">
+        <input type="checkbox" id="rememberMe">
+        <label for="rememberMe">Remember me for 30 days</label>
       </div>
       <button type="submit" class="login-btn" id="loginBtn">Login</button>
       <div class="login-error" id="loginError"></div>
