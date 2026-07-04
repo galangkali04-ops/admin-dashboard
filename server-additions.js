@@ -166,7 +166,7 @@ const loginLimiter = rateLimit({
 
 app.post('/api/login', loginLimiter, async (req, res) => {
     try {
-        const { username, password } = req.body || {};
+        const { username, password, remember } = req.body || {};
         if (!username || !password) {
             return res.status(400).json({ error: 'Username dan password wajib diisi' });
         }
@@ -181,8 +181,11 @@ app.post('/api/login', loginLimiter, async (req, res) => {
             return res.status(401).json({ error: 'Username atau password salah' });
         }
 
-        const token = jwt.sign({ sub: username }, JWT_SECRET, { expiresIn: '12h' });
-        console.log(`✅ Login berhasil: ${username}`);
+        // "Remember me" dicentang -> sesi tahan 30 hari (gak perlu login ulang
+        // sampai logout manual). Kalau tidak dicentang -> tetap 12 jam kayak semula.
+        const expiresIn = remember ? '30d' : '12h';
+        const token = jwt.sign({ sub: username }, JWT_SECRET, { expiresIn });
+        console.log(`✅ Login berhasil: ${username} (sesi: ${expiresIn})`);
         res.json({ success: true, token });
     } catch (e) {
         console.error('❌ Error /api/login:', e.message);
