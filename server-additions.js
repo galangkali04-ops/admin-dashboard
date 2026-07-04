@@ -69,8 +69,45 @@ async function lyFetchAll(endpoint, params = {}) {
     return results;
 }
 
-async function getItemNames() {
+/* ═══════════════════════════════════════════════════════
+   CACHE: item, diskon, customer di-cache di memori server
+   biar gak perlu tarik ulang dari Loyverse tiap kali ganti
+   filter tanggal — ini yang bikin dashboard kerasa lambat.
+   Data ini emang jarang berubah (nama produk/diskon), jadi
+   aman di-cache agak lama (15 menit).
+   ═══════════════════════════════════════════════════════ */
+const CACHE_TTL = 15 * 60 * 1000; // 15 menit
+const _cache = {}; // { [key]: { data, fetchedAt } }
+
+async function getCached(key, fetchFn) {
+    const entry = _cache[key];
+    const isFresh = entry && (Date.now() - entry.fetchedAt) < CACHE_TTL;
+    if (isFresh) {
+        console.log(`⚡ Cache "${key}" masih fresh, skip fetch ke Loyverse`);
+        return entry.data;
+    }
     try {
+        console.log(`🔄 Mengambil data "${key}" terbaru dari Loyverse...`);
+        const data = await fetchFn();
+        _cache[key] = { data, fetchedAt: Date.now() };
+        return data;
+    } catch (e) {
+        // Kalau gagal ambil data baru tapi masih ada cache lama (walau sudah
+        // kadaluarsa), lebih baik pakai yang lama daripada dashboard error total.
+        if (entry) {
+            console.error(`⚠️ Gagal refresh cache "${key}", pakai data cache lama:`, e.message);
+            return entry.data;
+        }
+        throw e;
+    }
+}
+
+function invalidateCache(key) {
+    delete _cache[key];
+}
+
+async function getItemNames() {
+    return getCached('items', async () => {
         const items = await lyFetchAll('items');
         const map = {};
         items.forEach(i => {
@@ -79,45 +116,39 @@ async function getItemNames() {
             });
         });
         return map;
-    } catch (e) {
+    }).catch(e => {
         console.error('⚠️ Gagal mengambil nama item:', e.message);
         return {};
-    }
+    });
 }
 
 // Nama diskon (mis. "BTC", "Staff Discount") tidak ikut terbawa di dalam
 // receipts/line_items — Loyverse cuma kasih id-nya. Jadi diambil terpisah
 // dari endpoint /discounts lalu di-mapping id -> nama, sama pola-nya kayak getItemNames().
 async function getDiscountNames() {
-    try {
+    return getCached('discounts', async () => {
         const discounts = await lyFetchAll('discounts');
         const map = {};
         discounts.forEach(d => { map[d.id] = d.name; });
         return map;
-    } catch (e) {
+    }).catch(e => {
         console.error('⚠️ Gagal mengambil nama diskon:', e.message);
         return {};
-    }
+    });
 }
 
-let _customerCache = { map: {}, fetchedAt: 0 };
-const CUSTOMER_CACHE_TTL = 5 * 60 * 1000;
-
 async function getCustomerMap() {
-    const isFresh = (Date.now() - _customerCache.fetchedAt) < CUSTOMER_CACHE_TTL;
-    if (isFresh && Object.keys(_customerCache.map).length > 0) return _customerCache.map;
-    try {
+    return getCached('customers', async () => {
         const customers = await lyFetchAll('customers');
         const map = {};
         customers.forEach(c => {
             map[c.id] = { name: c.name || null, email: c.email || null };
         });
-        _customerCache = { map, fetchedAt: Date.now() };
         return map;
-    } catch (e) {
+    }).catch(e => {
         console.error('⚠️ Gagal mengambil data customer:', e.message);
-        return _customerCache.map;
-    }
+        return {};
+    });
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -177,6 +208,19 @@ function requireAuth(req, res, next) {
 
 // Semua route /api/* di bawah ini wajib login, KECUALI /api/login yang sudah didaftarkan di atas
 app.use('/api', requireAuth);
+
+/* ═══════════════════════════════════════════════════════
+   API: REFRESH CACHE — dipakai kalau baru nambah/ubah
+   produk atau diskon di Loyverse, biar gak perlu nunggu
+   cache expired sendiri (15 menit)
+   ═══════════════════════════════════════════════════════ */
+app.post('/api/cache/refresh', (req, res) => {
+    invalidateCache('items');
+    invalidateCache('discounts');
+    invalidateCache('customers');
+    console.log('🗑️ Cache item/diskon/customer dikosongkan manual');
+    res.json({ success: true, message: 'Cache dikosongkan, data terbaru akan diambil di request berikutnya' });
+});
 
 /* ═══════════════════════════════════════════════════════
    API: MEMBERS — baca dari member_registrations
