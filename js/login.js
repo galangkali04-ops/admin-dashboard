@@ -3,6 +3,14 @@ if (localStorage.getItem('auth_token')) {
   window.location.href = 'index.html';
 }
 
+// Isi otomatis username kalau sebelumnya pernah dicentang "Remember me"
+// (yang disimpan cuma username, password TIDAK pernah disimpan di browser)
+const rememberedUsername = localStorage.getItem('remembered_username');
+if (rememberedUsername) {
+  document.getElementById('username').value = rememberedUsername;
+  document.getElementById('rememberMe').checked = true;
+}
+
 const form      = document.getElementById('loginForm');
 const errorEl   = document.getElementById('loginError');
 const btn       = document.getElementById('loginBtn');
@@ -31,12 +39,13 @@ form.addEventListener('submit', async (e) => {
 
   const username = document.getElementById('username').value.trim();
   const password = document.getElementById('password').value;
+  const remember = document.getElementById('rememberMe').checked;
 
   try {
     const res = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password, remember })
     });
 
     const data = await res.json();
@@ -47,6 +56,14 @@ form.addEventListener('submit', async (e) => {
     }
 
     localStorage.setItem('auth_token', data.token);
+
+    // Ingat username aja (bukan password) buat auto-isi login berikutnya
+    if (remember) {
+      localStorage.setItem('remembered_username', username);
+    } else {
+      localStorage.removeItem('remembered_username');
+    }
+
     window.location.href = 'index.html';
   } catch (err) {
     errorEl.textContent = 'Tidak bisa terhubung ke server. Coba lagi.';
