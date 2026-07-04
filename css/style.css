@@ -65,6 +65,22 @@ body {
   color: var(--gold);
 }
 
+.topbar-brand-text {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  height: 34px;
+  max-height: 34px;
+  width: auto;
+  max-width: 130px;
+  object-fit: contain;
+  display: block;
+  flex-shrink: 0;
+}
+
 .brand-sub {
   font-family: 'DM Mono', monospace;
   font-size: 11px;
@@ -178,6 +194,64 @@ body {
   box-shadow: 0 6px 16px -8px rgba(212, 168, 75, 0.6);
 }
 
+/* ── CUSTOM DATE RANGE PICKER ── */
+.custom-range-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin: -12px 0 24px;
+}
+
+.custom-range-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.custom-range-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  padding: 7px 10px;
+  outline: none;
+  color-scheme: dark;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.custom-range-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212, 168, 75, 0.12);
+}
+
+.custom-range-error {
+  font-size: 11px;
+  color: var(--red);
+  font-family: 'DM Mono', monospace;
+}
+
+@media (max-width: 480px) {
+  .custom-range-row {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .custom-range-row .btn-refresh {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* ── LAYOUT CONTAINER ── */
 .dashboard-container {
   padding: 32px;
@@ -222,7 +296,20 @@ body {
   margin-bottom: 20px;
 }
 
-/* Mengatur tumpukan layout di layar perangkat tablet/mobile kecil */
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — TABLET BESAR / iPad landscape / Android tablet
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .dashboard-container {
+    padding: 24px;
+  }
+  .kpi-grid,
+  .kpi-grid[style] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Mengatur tumpukan layout di layar perangkat tablet/mobile kecil (iPad portrait, Android tablet) */
 @media (max-width: 768px) {
   .row-2 {
     grid-template-columns: 1fr;
@@ -232,6 +319,12 @@ body {
     gap: 12px;
     align-items: flex-start;
     padding: 16px;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .topbar-right {
+    width: 100%;
+    justify-content: space-between;
   }
   .search-box input,
   .search-box input:focus {
@@ -242,6 +335,127 @@ body {
   }
   .table-scroll {
     max-height: 360px;
+  }
+  .dashboard-container {
+    padding: 20px 16px;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+  .brand-logo {
+    height: 30px;
+    max-height: 30px;
+  }
+  .kpi-grid,
+  .kpi-grid[style] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px;
+  }
+  .kpi-card {
+    padding: 16px 18px;
+  }
+  .kpi-value {
+    font-size: 26px;
+  }
+  .section-label {
+    margin: 24px 0 12px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — HP (iPhone 14/15/16 & sekitarnya, Android phone)
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .dashboard-container {
+    padding: 16px 12px;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .topbar {
+    padding: 12px 14px;
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+  }
+  .topbar-brand-text {
+    gap: 10px;
+  }
+  .brand-logo {
+    height: 26px;
+    max-height: 26px;
+    max-width: 100px;
+  }
+  .brand-sub {
+    font-size: 9px;
+  }
+  .topbar-right {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .btn-refresh {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+  .kpi-grid,
+  .kpi-grid[style] {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+  .kpi-card {
+    padding: 14px 16px;
+  }
+  .kpi-value {
+    font-size: 24px;
+  }
+  .kelapa-bar {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+  .kelapa-count {
+    font-size: 22px;
+  }
+  .panel-header {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+  .panel-body {
+    padding: 14px;
+  }
+  .dynamic-chart-box,
+  .chart-container {
+    height: 220px;
+    padding: 8px;
+  }
+  .view-toggle-btn {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+  .data-table th,
+  .data-table td {
+    padding: 8px 10px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE — HP LAYAR SANGAT KECIL (iPhone SE, Android compact ~360px)
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 380px) {
+  .topbar-brand-text {
+    flex-wrap: wrap;
+  }
+  .brand-logo {
+    height: 24px;
+    max-height: 24px;
+  }
+  .kpi-value {
+    font-size: 20px;
+  }
+  .kpi-label {
+    font-size: 10px;
+  }
+  .kelapa-right {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 

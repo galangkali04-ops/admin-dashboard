@@ -2,18 +2,161 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Santai Recovery Spa · Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ── Inline styles khusus breakdown kategori pengunjung ── */
+    .visitor-cat-row {
+      padding: 9px 0;
+      border-bottom: 1px dashed var(--border, #30363d);
+    }
+    .visitor-cat-row:last-child { border-bottom: none; }
+    .visitor-cat-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+    .visitor-cat-count {
+      font-family: 'DM Mono', monospace;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .visitor-cat-bar-wrap {
+      height: 5px;
+      background: var(--surface2, #21262d);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .visitor-cat-bar {
+      height: 100%;
+      border-radius: 3px;
+      transition: width .5s;
+    }
+    .visitor-cat-total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0 4px;
+      font-size: 12px;
+      color: var(--muted, #7d8590);
+      border-top: 1px solid var(--border, #30363d);
+      margin-top: 6px;
+    }
+
+    /* ── Kelapa Counter (kolom kecil: total Coconut Water terjual) ── */
+    .kelapa-bar {
+      background: linear-gradient(135deg, var(--surface, #161b22) 0%, #16261f 100%);
+      border: 1px solid var(--border, #21262d);
+      border-left: 3px solid var(--teal, #2dd4bf);
+      border-radius: 10px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px -20px rgba(0,0,0,0.7);
+    }
+    .kelapa-left { display: flex; align-items: center; gap: 12px; }
+    .kelapa-icon { font-size: 22px; line-height: 1; }
+    .kelapa-name { font-size: 13px; font-weight: 500; color: var(--text, #e6edf3); }
+    .kelapa-label { font-size: 11px; color: var(--muted, #7d8590); margin-top: 1px; }
+    .kelapa-right { display: flex; align-items: baseline; gap: 5px; }
+    .kelapa-count {
+      font-family: 'DM Mono', monospace;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--teal, #2dd4bf);
+      line-height: 1;
+    }
+    .kelapa-unit { font-size: 11px; color: var(--muted, #7d8590); }
+
+    /* ── View toggle (Bar / Grafik) ── */
+    .view-toggle { display: flex; gap: 4px; }
+    .view-toggle-btn {
+      background: var(--surface2, #21262d);
+      border: 1px solid var(--border, #30363d);
+      color: var(--muted, #7d8590);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: all .15s;
+    }
+    .view-toggle-btn.active {
+      background: var(--gold-dim, rgba(212,168,75,.12));
+      border-color: var(--gold, #d4a84b);
+      color: var(--gold, #d4a84b);
+    }
+
+    /* ── Tabel Detail Pengunjung ala Sales Monitor (No / Nama / Session / 🥥 / Bayar / Total) ── */
+    .table-scroll { overflow-x: auto; }
+    .col-no {
+      font-family: 'DM Mono', monospace; font-size: 11px;
+      color: var(--muted, #7d8590); width: 30px; text-align: center;
+    }
+    .col-coconut { text-align: center; white-space: nowrap; }
+    .col-pay { white-space: nowrap; }
+    .col-total-amt {
+      font-family: 'DM Mono', monospace; font-size: 12px;
+      color: var(--gold, #d4a84b); text-align: right; white-space: nowrap;
+    }
+    .col-total-amt .discount { font-size: 10px; color: var(--red, #f85149); display: block; margin-top: 1px; }
+    .coconut-cell { color: var(--teal, #2dd4bf); font-weight: 600; font-family: 'DM Mono', monospace; font-size: 12px; }
+    .no-coconut { color: var(--border, #30363d); }
+    tr.split-row td { color: var(--muted, #7d8590); font-size: 12px; }
+    tr.split-row .visitor-name { font-style: italic; }
+    tr.retail-row .col-no { color: var(--muted, #7d8590); }
+    tr.retail-row td { opacity: .75; }
+
+    /* payment badges */
+    .b-cash     { background: rgba(63,185,80,.1);  color: var(--green, #3fb950); border: 1px solid rgba(63,185,80,.25); }
+    .b-card     { background: rgba(88,166,255,.1); color: var(--blue, #58a6ff);  border: 1px solid rgba(88,166,255,.25); }
+    .b-qris     { background: rgba(188,140,255,.1);color: var(--purple, #bc8cff); border: 1px solid rgba(188,140,255,.25); }
+    .b-transfer { background: rgba(45,212,191,.1); color: var(--teal, #2dd4bf);  border: 1px solid rgba(45,212,191,.25); }
+    .b-pay-other{ background: rgba(255,255,255,.04); color: var(--muted, #7d8590); border: 1px solid var(--border, #30363d); }
+
+    /* session badges (label pendek, konsisten sama Sales Monitor) */
+    .b-single  { background: rgba(88,166,255,.1);  color: var(--blue, #58a6ff);   border: 1px solid rgba(88,166,255,.3); }
+    .b-daypass { background: rgba(45,212,191,.1);  color: var(--teal, #2dd4bf);   border: 1px solid rgba(45,212,191,.3); }
+    .b-member  { background: rgba(212,168,75,.1);  color: var(--gold, #d4a84b);  border: 1px solid rgba(212,168,75,.3); }
+    .b-mv      { background: rgba(212,168,75,.06); color: #a07830;               border: 1px solid rgba(212,168,75,.15); }
+    .b-group   { background: rgba(248,81,73,.1);   color: var(--red, #f85149);   border: 1px solid rgba(248,81,73,.3); }
+    .b-private { background: rgba(188,140,255,.1); color: var(--purple, #bc8cff);border: 1px solid rgba(188,140,255,.3); }
+    .b-upgrade { background: rgba(88,166,255,.08); color: var(--blue, #58a6ff);  border: 1px solid rgba(88,166,255,.2); }
+    .b-sess-other { background: rgba(255,255,255,.04); color: var(--muted, #7d8590); border: 1px solid var(--border, #30363d); }
+
+    /* diskon */
+    .b-discount { background: rgba(248,81,73,.1); color: var(--red, #f85149); border: 1px solid rgba(248,81,73,.25); white-space: nowrap; }
+    .col-discount { white-space: nowrap; }
+
+    /* ── Mobile tweaks (hape) ── */
+    @media (max-width: 480px) {
+      .dashboard-container { padding: 16px 10px; }
+      .kpi-value { font-size: 24px; }
+      .data-table th, .data-table td { padding: 8px 8px; font-size: 12px; }
+      .panel-title { font-size: 12px; }
+      .search-box input { width: 100%; }
+      .search-box { width: 100%; }
+      .presets-row { flex-wrap: wrap; gap: 6px; }
+      .preset-btn { padding: 5px 12px; font-size: 11px; }
+      .badge { font-size: 9px; padding: 2px 6px; }
+      .col-total-amt { font-size: 11px; }
+    }
+  </style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="topbar-brand">
     <div class="topbar-brand-text">
-      <span class="brand-name">SANTAI</span>
+      <img src="assets/gambar/TRANSPARANT LOGO.png" alt="Logo" class="brand-logo">
       <span class="brand-sub">Recovery Spa · Admin Dashboard</span>
     </div>
   </div>
@@ -26,44 +169,78 @@
     <button class="btn-refresh" onclick="loadAll()">
       <span class="spin-icon">↻</span> Refresh
     </button>
+    <button class="btn-refresh" onclick="logout()">
+      ⎋ Logout
+    </button>
   </div>
 </div>
 
 <div class="dashboard-container">
-  
+
+  <!-- ── PRESET FILTER ── -->
   <div class="presets-row">
     <button class="preset-btn active" id="btn-today" onclick="setPreset('today', this)">Today</button>
     <button class="preset-btn" onclick="setPreset('yesterday', this)">Yesterday</button>
     <button class="preset-btn" onclick="setPreset('7d', this)">Last 7 Days</button>
     <button class="preset-btn" onclick="setPreset('30d', this)">Last 30 Days</button>
     <button class="preset-btn" onclick="setPreset('thisMonth', this)">This Month</button>
+    <button class="preset-btn" id="btn-custom" onclick="setPreset('custom', this)">Custom</button>
   </div>
 
-  <div class="kpi-grid">
+  <div class="custom-range-row" id="customRangeRow" style="display:none;">
+    <label class="custom-range-label">From
+      <input type="date" id="customFrom" class="custom-range-input" onkeydown="if(event.key==='Enter') applyCustomRange()">
+    </label>
+    <label class="custom-range-label">To
+      <input type="date" id="customTo" class="custom-range-input" onkeydown="if(event.key==='Enter') applyCustomRange()">
+    </label>
+    <button class="btn-refresh" id="btnApplyCustomRange" onclick="applyCustomRange()">Apply</button>
+    <span id="customRangeError" class="custom-range-error"></span>
+  </div>
+
+  <!-- ── KELAPA COUNTER (kolom kecil, total Coconut Water terjual sesuai POS Loyverse) ── -->
+  <div class="kelapa-bar">
+    <div class="kelapa-left">
+      <div class="kelapa-icon">🥥</div>
+      <div>
+        <div class="kelapa-name">Coconut Water</div>
+        <div class="kelapa-label">Sold this period</div>
+      </div>
+    </div>
+    <div class="kelapa-right">
+      <div class="kelapa-count" id="kelapaCount">0</div>
+      <div class="kelapa-unit">Bottles</div>
+    </div>
+  </div>
+
+  <!-- ── KPI CARDS (4 kartu) ── -->
+  <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr);">
     <div class="kpi-card gold">
-      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-label">Net Sales</div>
       <div id="kpi-revenue" class="kpi-value">Rp 0</div>
       <div id="kpi-revenue-sub" class="kpi-sub">Loading receipts...</div>
     </div>
     <div class="kpi-card green">
-      <div class="kpi-label">New Members</div>
-      <div id="kpi-new-members" class="kpi-value">0</div>
-      <div class="kpi-sub">Registered in period</div>
+      <div class="kpi-label">Total Visitors</div>
+      <div id="kpi-visitors" class="kpi-value">0</div>
+      <div id="kpi-visitors-sub" class="kpi-sub">As reported by Loyverse</div>
     </div>
     <div class="kpi-card red">
-      <div class="kpi-label">Mendekati Expired (7d)</div>
+      <div class="kpi-label">Expiring Soon (7d)</div>
       <div id="kpi-expiring-members" class="kpi-value">0</div>
-      <div class="kpi-sub">Butuh Tindakan Segera</div>
+      <div class="kpi-sub">Needs Immediate Action</div>
     </div>
     <div class="kpi-card blue">
-      <div class="kpi-label">Total Pengunjung</div>
-      <div id="kpi-visitors" class="kpi-value">0</div>
-      <div class="kpi-sub" id="kpi-visitors-sub">Transaksi tercatat</div>
+      <div class="kpi-label">New Members</div>
+      <div id="kpi-new-members" class="kpi-value">0</div>
+
+      <div class="kpi-sub">Registered in period</div>
     </div>
   </div>
 
+  <!-- ── CHART + PAYMENT BREAKDOWN ── -->
   <div class="section-label">Visual Analytics</div>
-  <div class="row-1" style="margin-bottom: 20px;">
+  <div class="row-2" style="margin-bottom: 20px;">
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">📈 Daily Revenue Trend</div>
@@ -72,18 +249,31 @@
         <canvas id="revenueChart"></canvas>
       </div>
     </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">💳 Payment Method Breakdown</div>
+        <span class="badge badge-gold" id="payment-breakdown-total-badge">Rp 0</span>
+      </div>
+      <div class="panel-body">
+        <div id="payment-breakdown-container">
+          <div style="padding:10px; color:var(--muted); font-size:13px; text-align:center;">Loading...</div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="section-label">Detail Pengunjung</div>
+  <!-- ── TABEL PENGUNJUNG ── -->
+  <div class="section-label">Visitor Details</div>
   <div class="panel" style="margin-bottom: 20px;">
     <div class="panel-header">
       <div class="panel-title">
-        👥 Jumlah Pengunjung
-        <span class="badge badge-blue" id="visitor-count-badge">0 pengunjung</span>
+        👥 Visitor Count
+        <span class="badge badge-blue" id="visitor-count-badge">0 visitors</span>
       </div>
       <div class="search-box">
         <span class="search-icon">⌕</span>
-        <input type="text" id="visitor-search" placeholder="Cari nama, email, atau session…" oninput="filterVisitorTable()">
+        <input type="text" id="visitor-search" placeholder="Search name or session…" oninput="filterVisitorTable()">
       </div>
     </div>
     <div class="panel-body" style="padding:0;">
@@ -91,61 +281,28 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Nama Pengunjung</th>
-              <th>Email</th>
-              <th>Session / Layanan</th>
-              <th>Waktu</th>
+              <th class="col-no">No</th>
+              <th>Name</th>
+              <th>Session</th>
+              <th style="text-align:center;">🥥</th>
+              <th>Discount</th>
+              <th>Payment</th>
+              <th style="text-align:right;">Total</th>
             </tr>
           </thead>
           <tbody id="table-visitors-body">
-            <tr class="loading-row"><td colspan="4">Loading data…</td></tr>
+            <tr class="loading-row"><td colspan="7">Loading data…</td></tr>
           </tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <div class="section-label">Members Management</div>
-  <div class="row-2">
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">⚠️ Member Mau Expired</div>
-      </div>
-      <div class="panel-body">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Nama</th>
-              <th>Plan</th>
-              <th style="text-align: center;">Reminder</th>
-            </tr>
-          </thead>
-          <tbody id="table-expiring-body">
-            <tr class="loading-row"><td colspan="3">Loading data…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
+  <!-- ── REVENUE BREAKDOWN + KATEGORI PENGUNJUNG (berdampingan) ── -->
+  <div class="section-label">Revenue Breakdown & Visitor Categories</div>
+  <div class="row-2" style="margin-bottom: 20px;">
 
-    <div class="panel">
-      <div class="panel-header">
-        <div class="panel-title">🆕 New Registrations</div>
-      </div>
-      <div class="panel-body">
-        <table class="data-table">
-          <thead>
-            <tr><th>Name</th><th>Level</th><th>Joined Date</th></tr>
-          </thead>
-          <tbody id="table-new-members-body">
-            <tr class="loading-row"><td colspan="3">Loading data…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div class="section-label">Revenue Breakdown & Operations</div>
-  <div class="row-2" style="margin-bottom: 48px;">
+    <!-- Revenue Summary -->
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">💰 Revenue Summary <span class="badge badge-gold" id="revenue-period-label">—</span></div>
@@ -162,6 +319,63 @@
       </div>
     </div>
 
+    <!-- Kategori Pengunjung Panel (breakdown berdasarkan tipe sesi Loyverse) -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          🎫 Visitor Categories
+          <span class="badge badge-blue" id="visitor-breakdown-total-badge">0 visitors</span>
+        </div>
+        <div class="view-toggle">
+          <button class="view-toggle-btn active" id="btn-view-bar" onclick="setVisitorView('bar')">☰ Bar</button>
+          <button class="view-toggle-btn" id="btn-view-chart" onclick="setVisitorView('chart')">◔ Chart</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div id="visitor-breakdown-container">
+          <div style="padding:10px; color:var(--muted); font-size:13px; text-align:center;">Loading...</div>
+        </div>
+        <div class="dynamic-chart-box" id="visitor-breakdown-chart-wrap" style="display:none; height:240px;">
+          <canvas id="visitorCategoryChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── PENGGUNAAN DISKON TERBANYAK ── -->
+  <div class="section-label">Most Used Discounts</div>
+  <div class="panel" style="margin-bottom: 20px;">
+    <div class="panel-header">
+      <div class="panel-title">
+        🏷️ Discounts Used
+        <span class="badge badge-purple" id="discount-usage-period-label">—</span>
+      </div>
+      <span class="badge badge-gold" id="discount-usage-total-badge">0 uses</span>
+    </div>
+    <div class="panel-body" style="padding:0;">
+      <div class="table-scroll" style="max-height:400px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Discount Name</th>
+              <th style="text-align:center;">Usage Count</th>
+              <th style="text-align:center;">Transactions</th>
+              <th style="text-align:right;">Total Discount Value</th>
+            </tr>
+          </thead>
+          <tbody id="discount-usage-table">
+            <tr class="loading-row"><td colspan="4">Loading data…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DAILY BREAKDOWN + MEMBERS (berdampingan) ── -->
+  <div class="section-label">Daily Breakdown & Members Management</div>
+  <div class="row-2" style="margin-bottom: 20px;">
+
     <div class="panel">
       <div class="panel-header">
         <div class="panel-title">📅 Daily Breakdown Bars</div>
@@ -169,6 +383,41 @@
       <div class="panel-body" id="daily-breakdown-container" style="padding: 0;">
         <div style="padding:20px; color:var(--muted)">Loading daily distribution...</div>
       </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">⚠️ Expiring Members</div>
+      </div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead>
+            <tr><th>Name</th><th>Plan</th><th style="text-align:center;">Reminder</th></tr>
+          </thead>
+          <tbody id="table-expiring-body">
+            <tr class="loading-row"><td colspan="3">Loading data…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── NEW REGISTRATIONS ── -->
+  <div class="section-label">New Registrations</div>
+  <div class="panel" style="margin-bottom: 48px;">
+    <div class="panel-header">
+      <div class="panel-title">🆕 New Members</div>
+    </div>
+    <div class="panel-body">
+      <table class="data-table">
+        <thead>
+          <tr><th>Name</th><th>Level</th><th>Joined Date</th></tr>
+        </thead>
+        <tbody id="table-new-members-body">
+          <tr class="loading-row"><td colspan="3">Loading data…</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
