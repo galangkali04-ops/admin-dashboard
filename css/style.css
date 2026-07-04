@@ -758,3 +758,33 @@ body {
   width: 100%;
   padding: 16px;
 }
+/* ── LOADING OVERLAY (spinner saat ganti filter tanggal) ── */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(13, 17, 23, 0.55);
+  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin-loading 0.8s linear infinite;
+}
+@keyframes spin-loading {
+  to { transform: rotate(360deg); }
+}
+.loading-overlay-text {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text);
+  letter-spacing: 0.5px;
+}
