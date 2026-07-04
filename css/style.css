@@ -72,10 +72,10 @@ body {
 }
 
 .brand-logo {
-  height: 34px;
-  max-height: 34px;
+  height: 48px;
+  max-height: 48px;
   width: auto;
-  max-width: 130px;
+  max-width: 170px;
   object-fit: contain;
   display: block;
   flex-shrink: 0;
@@ -342,8 +342,8 @@ body {
     padding-right: max(16px, env(safe-area-inset-right));
   }
   .brand-logo {
-    height: 30px;
-    max-height: 30px;
+    height: 40px;
+    max-height: 40px;
   }
   .kpi-grid,
   .kpi-grid[style] {
@@ -380,9 +380,9 @@ body {
     gap: 10px;
   }
   .brand-logo {
-    height: 26px;
-    max-height: 26px;
-    max-width: 100px;
+    height: 34px;
+    max-height: 34px;
+    max-width: 130px;
   }
   .brand-sub {
     font-size: 9px;
@@ -444,8 +444,8 @@ body {
     flex-wrap: wrap;
   }
   .brand-logo {
-    height: 24px;
-    max-height: 24px;
+    height: 30px;
+    max-height: 30px;
   }
   .kpi-value {
     font-size: 20px;
