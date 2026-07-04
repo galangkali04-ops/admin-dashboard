@@ -227,7 +227,7 @@ function processKpis(receipts, members) {
     el = document.getElementById('kpi-revenue-sub');
     if (el) el.textContent = saleCount + ' receipts' + (refundCount ? ' \u00b7 ' + refundCount + ' refund' : '');
 
-    // Total Pengunjung — dihitung dengan aturan sama seperti Sales Monitor:
+    // Total visitor — dihitung dengan aturan sama seperti Sales Monitor:
     // struk yang isinya cuma retail (coconut/snack, tanpa sesi) TIDAK dihitung
     // sebagai tamu, dan nama ganda dalam 1 struk (mis. "Polina & Vladimir")
     // dihitung sebagai 2 tamu terpisah.
@@ -246,7 +246,7 @@ function processKpis(receipts, members) {
     if (el) el.textContent = newM.length;
 }
 
-// ── KATEGORI PENGUNJUNG (aturan sama persis dengan Sales Monitor) ──
+// ── KATEGORI visitor (aturan sama persis dengan Sales Monitor) ──
 // Daftar nama produk sesi asli Loyverse. Kalau nama produk di Loyverse-mu
 // berbeda, sesuaikan daftar ini.
 const SESSION_PRODUCTS = [
@@ -315,7 +315,7 @@ function renderVisitorBreakdownPanel(receipts) {
     var total     = breakdown.total;
 
     var badge = document.getElementById('visitor-breakdown-total-badge');
-    if (badge) badge.textContent = total + ' pengunjung';
+    if (badge) badge.textContent = total + ' visitor';
 
     if (total === 0) {
         container.innerHTML = '<div style="padding:16px 0;color:var(--muted);font-size:13px;text-align:center;">No visitor data for this period.</div>';
@@ -349,7 +349,7 @@ function renderVisitorBreakdownPanel(receipts) {
     container.innerHTML = html;
 }
 
-// ── DISPATCHER: 2 opsi tampilan data Kategori Pengunjung (Bar / Grafik) ──
+// ── DISPATCHER: 2 opsi tampilan data Kategori visitor (Bar / Grafik) ──
 function renderVisitorBreakdown(receipts) {
     lastReceiptsData = receipts;
     if (currentVisitorView === 'chart') {
@@ -384,7 +384,7 @@ function renderVisitorCategoryChart(receipts) {
     var total     = breakdown.total;
 
     var badge = document.getElementById('visitor-breakdown-total-badge');
-    if (badge) badge.textContent = total + ' pengunjung';
+    if (badge) badge.textContent = total + ' visitor';
 
     if (visitorCategoryChartInstance) {
         visitorCategoryChartInstance.destroy();
@@ -691,7 +691,7 @@ function discountBadgeHtml(items) {
 }
 
 // ── PENGGUNAAN DISKON TERBANYAK ──
-// Dihitung per "orang" (sama seperti Kategori Pengunjung), bukan cuma per
+// Dihitung per "orang" (sama seperti Kategori visitor), bukan cuma per
 // struk — jadi kalau 1 struk isinya "Polina & Vladimir" pakai diskon BTC,
 // itu dihitung 2 pemakaian, bukan 1. Refund tidak dihitung sebagai pemakaian.
 // Kalau 1 struk punya beberapa item dengan diskon nama BEDA (mis. BTC di
@@ -804,7 +804,7 @@ function renderVisitorTable(receipts) {
 
     var sorted = receipts.slice().sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
 
-    // Total tamu (aturan sama seperti Kategori Pengunjung & Sales Monitor):
+    // Total tamu (aturan sama seperti Kategori visitor & Sales Monitor):
     // retail-only & refund tidak dihitung. Nomor dimulai dari transaksi
     // paling awal (angka kecil) ke paling baru (angka besar).
     var totalGuestUnits = 0;
@@ -892,7 +892,7 @@ function filterVisitorTable() {
 
 function updateVisitorCount(count) {
     var badge = document.getElementById('visitor-count-badge');
-    if (badge) badge.textContent = count + ' pengunjung';
+    if (badge) badge.textContent = count + ' visitor';
 }
 
 // ── REVENUE TABLE ──
