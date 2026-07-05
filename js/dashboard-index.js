@@ -525,7 +525,7 @@ function computePaymentBreakdown(receipts) {
     return totals;
 }
 
-// Ringkasan refund tersendiri (jumlah transaksi + total nominal) — dipakai
+// Ringkasan refund tersendiri (jumlah transaction + total nominal) — dipakai
 // buat nampilin baris "Refunds" yang eksplisit di payment breakdown, biar
 // kelihatan jelas ada berapa refund, bukan cuma "ke-uwar" dalam angka net.
 function computeRefundSummary(receipts) {
@@ -588,7 +588,7 @@ function renderPaymentBreakdown(receipts) {
     if (refundSummary.count > 0) {
         html += `<div class="visitor-cat-row" style="margin-top:10px;padding-top:12px;border-top:1px dashed var(--border);">
             <div class="visitor-cat-head">
-                <span style="color:var(--red)">↩ Refunds (${refundSummary.count} transaksi)</span>
+                <span style="color:var(--red)">↩ Refunds (${refundSummary.count} transaction)</span>
                 <span class="visitor-cat-count" style="color:var(--red)">-${fmtMoney(refundSummary.total)}</span>
             </div>
         </div>`;
@@ -830,7 +830,7 @@ function renderVisitorTable(receipts) {
     var sorted = receipts.slice().sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
 
     // Total tamu (aturan sama seperti Kategori Pengunjung & Sales Monitor):
-    // retail-only & refund tidak dihitung. Nomor dimulai dari transaksi
+    // retail-only & refund tidak dihitung. Nomor dimulai dari transaction
     // paling awal (angka kecil) ke paling baru (angka besar).
     var totalGuestUnits = 0;
     sorted.forEach(function(r) {
@@ -869,7 +869,7 @@ function renderVisitorTable(receipts) {
         }
 
         // Nama bisa berisi 2+ tamu (mis. "Polina & Vladimir") — masing-masing
-        // dapat nomor sendiri, tapi detail transaksi cuma tampil di baris pertama.
+        // dapat nomor sendiri, tapi detail transaction cuma tampil di baris pertama.
         var names = splitGuestNames(r.customer_name);
         names.forEach(function(name, idx) {
             if (r.receipt_type !== 'REFUND') guestNo--;
