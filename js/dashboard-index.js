@@ -227,7 +227,7 @@ function processKpis(receipts, members) {
     el = document.getElementById('kpi-revenue-sub');
     if (el) el.textContent = saleCount + ' receipts' + (refundCount ? ' \u00b7 ' + refundCount + ' refund' : '');
 
-    // Total visitor — dihitung dengan aturan sama seperti Sales Monitor:
+    // Total Pengunjung — dihitung dengan aturan sama seperti Sales Monitor:
     // struk yang isinya cuma retail (coconut/snack, tanpa sesi) TIDAK dihitung
     // sebagai tamu, dan nama ganda dalam 1 struk (mis. "Polina & Vladimir")
     // dihitung sebagai 2 tamu terpisah.
@@ -246,7 +246,7 @@ function processKpis(receipts, members) {
     if (el) el.textContent = newM.length;
 }
 
-// ── KATEGORI visitor (aturan sama persis dengan Sales Monitor) ──
+// ── KATEGORI PENGUNJUNG (aturan sama persis dengan Sales Monitor) ──
 // Daftar nama produk sesi asli Loyverse. Kalau nama produk di Loyverse-mu
 // berbeda, sesuaikan daftar ini.
 const SESSION_PRODUCTS = [
@@ -315,7 +315,7 @@ function renderVisitorBreakdownPanel(receipts) {
     var total     = breakdown.total;
 
     var badge = document.getElementById('visitor-breakdown-total-badge');
-    if (badge) badge.textContent = total + ' visitor';
+    if (badge) badge.textContent = total + ' pengunjung';
 
     if (total === 0) {
         container.innerHTML = '<div style="padding:16px 0;color:var(--muted);font-size:13px;text-align:center;">No visitor data for this period.</div>';
@@ -349,7 +349,7 @@ function renderVisitorBreakdownPanel(receipts) {
     container.innerHTML = html;
 }
 
-// ── DISPATCHER: 2 opsi tampilan data Kategori visitor (Bar / Grafik) ──
+// ── DISPATCHER: 2 opsi tampilan data Kategori Pengunjung (Bar / Grafik) ──
 function renderVisitorBreakdown(receipts) {
     lastReceiptsData = receipts;
     if (currentVisitorView === 'chart') {
@@ -384,7 +384,7 @@ function renderVisitorCategoryChart(receipts) {
     var total     = breakdown.total;
 
     var badge = document.getElementById('visitor-breakdown-total-badge');
-    if (badge) badge.textContent = total + ' visitor';
+    if (badge) badge.textContent = total + ' pengunjung';
 
     if (visitorCategoryChartInstance) {
         visitorCategoryChartInstance.destroy();
@@ -525,12 +525,28 @@ function computePaymentBreakdown(receipts) {
     return totals;
 }
 
+// Ringkasan refund tersendiri (jumlah transaksi + total nominal) — dipakai
+// buat nampilin baris "Refunds" yang eksplisit di payment breakdown, biar
+// kelihatan jelas ada berapa refund, bukan cuma "ke-uwar" dalam angka net.
+function computeRefundSummary(receipts) {
+    var count = 0;
+    var total = 0;
+    receipts.forEach(function(r) {
+        if (r.receipt_type === 'REFUND') {
+            count += 1;
+            total += Math.abs(r.total_money || 0);
+        }
+    });
+    return { count: count, total: total };
+}
+
 function renderPaymentBreakdown(receipts) {
     var container = document.getElementById('payment-breakdown-container');
     if (!container) return;
 
     var totals = computePaymentBreakdown(receipts);
     var netTotal = Object.values(totals).reduce((sum, val) => sum + val, 0);
+    var refundSummary = computeRefundSummary(receipts);
 
     console.log('Payment Totals Final:', totals);   // ← Debug
     console.log('Net Total:', netTotal);
@@ -545,7 +561,7 @@ function renderPaymentBreakdown(receipts) {
         .filter(k => totals[k] !== 0)
         .sort((a, b) => Math.abs(totals[b]) - Math.abs(totals[a]));
 
-    if (order.length === 0 || netTotal === 0) {
+    if (order.length === 0 && refundSummary.count === 0) {
         container.innerHTML = '<div style="padding:40px 20px;color:var(--muted);font-size:13px;text-align:center;">No payment data for this period.</div>';
         return;
     }
@@ -568,6 +584,15 @@ function renderPaymentBreakdown(receipts) {
             </div>
         </div>`;
     });
+
+    if (refundSummary.count > 0) {
+        html += `<div class="visitor-cat-row" style="margin-top:10px;padding-top:12px;border-top:1px dashed var(--border);">
+            <div class="visitor-cat-head">
+                <span style="color:var(--red)">↩ Refunds (${refundSummary.count} transaksi)</span>
+                <span class="visitor-cat-count" style="color:var(--red)">-${fmtMoney(refundSummary.total)}</span>
+            </div>
+        </div>`;
+    }
 
     html += `<div class="visitor-cat-total-row">
         <span>Total Net Sales</span>
@@ -691,7 +716,7 @@ function discountBadgeHtml(items) {
 }
 
 // ── PENGGUNAAN DISKON TERBANYAK ──
-// Dihitung per "orang" (sama seperti Kategori visitor), bukan cuma per
+// Dihitung per "orang" (sama seperti Kategori Pengunjung), bukan cuma per
 // struk — jadi kalau 1 struk isinya "Polina & Vladimir" pakai diskon BTC,
 // itu dihitung 2 pemakaian, bukan 1. Refund tidak dihitung sebagai pemakaian.
 // Kalau 1 struk punya beberapa item dengan diskon nama BEDA (mis. BTC di
@@ -804,7 +829,7 @@ function renderVisitorTable(receipts) {
 
     var sorted = receipts.slice().sort(function(a, b) { return new Date(b.created_at) - new Date(a.created_at); });
 
-    // Total tamu (aturan sama seperti Kategori visitor & Sales Monitor):
+    // Total tamu (aturan sama seperti Kategori Pengunjung & Sales Monitor):
     // retail-only & refund tidak dihitung. Nomor dimulai dari transaksi
     // paling awal (angka kecil) ke paling baru (angka besar).
     var totalGuestUnits = 0;
@@ -892,7 +917,7 @@ function filterVisitorTable() {
 
 function updateVisitorCount(count) {
     var badge = document.getElementById('visitor-count-badge');
-    if (badge) badge.textContent = count + ' visitor';
+    if (badge) badge.textContent = count + ' pengunjung';
 }
 
 // ── REVENUE TABLE ──
